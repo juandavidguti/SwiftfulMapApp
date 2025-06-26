@@ -14,8 +14,7 @@ struct SwiftfulMapAppApp: App {
     
     var body: some Scene {
         WindowGroup {
-            LocationsView()
-                .environment(vm)
+            LocationsView(vm: LocationsViewModel())
         }
     }
 }
