@@ -21,7 +21,7 @@ struct LocationsView: View {
     let maxWidthForIpad: CGFloat = 700
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottomTrailing) {
             mapLayer
                 .ignoresSafeArea()
             
@@ -33,9 +33,32 @@ struct LocationsView: View {
                 Spacer()
                 locationsPreviewStack
             }
+            
+            // Floating Add (+) button
+            Button(action: {
+                vm.startAdd(at: vm.mapRegion.center)
+            }) {
+                Image(systemName: "plus")
+                    .font(.title2)
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+                    .shadow(radius: 4)
+            }
+            .padding([.trailing, .bottom], 24)
         }
         .sheet(item: $vm.sheetLocation, onDismiss: nil) { location in
             LocationDetailView(location: location)
+        }
+        .sheet(isPresented: $vm.isPresentingForm) {
+            if let coord = vm.draftCoordinate {
+                LocationFormView(
+                    vm: LocationFormViewModel(
+                        coordinate: coord,
+                        onSave: { vm.finishAdd(location: $0) }
+                    )
+                )
+            }
         }
     }
 }
@@ -52,7 +75,7 @@ extension LocationsView {
     private var header: some View {
         VStack {
             Button(action: vm.toggleLocationsList) {
-                Text(vm.mapLocation.name + ", " + vm.mapLocation.cityName)
+                Text(vm.mapLocation.title + (vm.mapLocation.subtitle.isEmpty ? "" : ", \(vm.mapLocation.subtitle)"))
                     .font(.title2)
                     .fontWeight(.black)
                     .foregroundColor(.primary)
@@ -77,19 +100,41 @@ extension LocationsView {
         .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 15)
     }
     
+    @available(iOS 17.0, *)
     private var mapLayer: some View {
-        Map(coordinateRegion: $vm.mapRegion,
-            annotationItems: vm.locations,
-            annotationContent: { location in
-            MapAnnotation(coordinate: location.coordinates) {
-                LocationMapAnnotationView()
-                    .scaleEffect(vm.mapLocation == location ? 1 : 0.7)
-                    .shadow(radius: 10)
-                    .onTapGesture {
-                        vm.showNextLocation(location: location)
+        MapReader { proxy in
+            Map(initialPosition: .region(vm.mapRegion)) {
+                ForEach(vm.locations) { location in
+                    Annotation("", coordinate: location.coordinate) {
+                        LocationMapAnnotationView()
+                            .scaleEffect(vm.mapLocation == location ? 1 : 0.7)
+                            .shadow(radius: 10)
+                            .onTapGesture {
+                                vm.showNextLocation(location: location)
+                            }
                     }
+                }
             }
-        })
+            .mapControls {
+                MapUserLocationButton()
+                MapCompass()
+            }
+            .gesture(
+                LongPressGesture(minimumDuration: 0.8)
+                    .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
+                    .onEnded { value in
+                        switch value {
+                        case .second(true, let drag?):
+                            let point = drag.location
+                            if let coord = proxy.convert(point, from: .local) {
+                                vm.startAdd(at: coord)
+                            }
+                        default:
+                            break
+                        }
+                    }
+            )
+        }
     }
     
     private var locationsPreviewStack: some View {

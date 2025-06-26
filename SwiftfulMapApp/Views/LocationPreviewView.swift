@@ -45,8 +45,19 @@ struct LocationPreviewView_Previews: PreviewProvider {
         ZStack {
             Color.green.ignoresSafeArea()
             
-            LocationPreviewView(location: LocationsDataService.locations.first!)
-                .padding()
+            LocationPreviewView(
+                location: Location(
+                    title: "Preview Pin",
+                    subtitle: "Subtitle",
+                    description: "",
+                    coordinate: .init(
+                        latitude: 0,
+                        longitude: 0
+                    ),
+                    link: ""
+                )
+            )
+            .padding()
         }
         .environmentObject(LocationsViewModel())
     }
@@ -56,7 +67,7 @@ extension LocationPreviewView {
     
     private var imageSection: some View {
         ZStack {
-            if let imageName = location.imageNames.first {
+            if let imageName = location.photos.first {
                 Image(imageName)
                     .resizable()
                     .scaledToFill()
@@ -71,11 +82,11 @@ extension LocationPreviewView {
     
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(location.name)
+            Text(location.title)
                 .font(.title2)
                 .fontWeight(.bold)
             
-            Text(location.cityName)
+            Text(location.subtitle)
                 .font(.subheadline)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

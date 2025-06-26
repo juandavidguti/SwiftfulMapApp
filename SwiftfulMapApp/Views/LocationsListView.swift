@@ -44,7 +44,7 @@ extension LocationsListView {
     
     private func listRowView(location: Location) -> some View {
         HStack {
-            if let imageName = location.imageNames.first {
+            if let imageName = location.photos.first {
                 Image(imageName)
                     .resizable()
                     .scaledToFill()
@@ -53,9 +53,9 @@ extension LocationsListView {
             }
             
             VStack(alignment: .leading) {
-                Text(location.name)
+                Text(location.title)
                     .font(.headline)
-                Text(location.cityName)
+                Text(location.subtitle)
                     .font(.subheadline)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

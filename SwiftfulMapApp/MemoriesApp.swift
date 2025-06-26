@@ -15,7 +15,7 @@
 import SwiftUI
 
 @main
-struct SwiftfulMapAppApp: App {
+struct Memories: App {
     
     @StateObject private var vm = LocationsViewModel()
     

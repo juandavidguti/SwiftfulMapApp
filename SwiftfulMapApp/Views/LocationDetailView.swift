@@ -45,8 +45,19 @@ struct LocationDetailView: View {
 
 struct LocationDetailView_Previews: PreviewProvider {
     static var previews: some View {
-        LocationDetailView(location: LocationsDataService.locations.first!)
-            .environmentObject(LocationsViewModel())
+        LocationDetailView(
+            location: Location(
+                title: "Preview Pin",
+                subtitle: "Subtitle",
+                description: "Demo location used only for SwiftUI preview.",
+                coordinate: .init(
+                    latitude: 0,
+                    longitude: 0
+                ),
+                link: "https://example.com"
+            )
+        )
+        .environmentObject(LocationsViewModel())
     }
 }
 
@@ -54,7 +65,7 @@ extension LocationDetailView {
     
     private var imageSection: some View {
         TabView {
-            ForEach(location.imageNames, id: \.self) {
+            ForEach(location.photos, id: \.self) {
                 Image($0)
                     .resizable()
                     .scaledToFill()
@@ -68,11 +79,11 @@ extension LocationDetailView {
     
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(location.name)
+            Text(location.title)
                 .font(.largeTitle)
                 .fontWeight(.semibold)
                 
-            Text(location.cityName)
+            Text(location.subtitle)
                 .font(.title3)
                 .foregroundColor(.secondary)
         }
@@ -93,18 +104,18 @@ extension LocationDetailView {
     }
     
     private var mapLayer: some View {
-        Map(coordinateRegion: .constant(MKCoordinateRegion(
-            center: location.coordinates,
-            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))),
-            annotationItems: [location]) { location in
-            MapAnnotation(coordinate: location.coordinates) {
+        Map(initialPosition: .region(MKCoordinateRegion(
+            center: location.coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+        ))) {
+            Annotation("", coordinate: location.coordinate) {
                 LocationMapAnnotationView()
                     .shadow(radius: 10)
             }
         }
-            .allowsHitTesting(false)
-            .aspectRatio(1, contentMode: .fit)
-            .cornerRadius(30)
+        .allowsHitTesting(false)
+        .aspectRatio(1, contentMode: .fit)
+        .cornerRadius(30)
     }
     
     private var backButton: some View {
