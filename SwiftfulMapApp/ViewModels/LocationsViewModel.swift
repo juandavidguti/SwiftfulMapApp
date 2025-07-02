@@ -17,16 +17,20 @@ import MapKit
 import SwiftUI
 import Combine
 
-class LocationsViewModel: ObservableObject {
+@MainActor class LocationsViewModel: ObservableObject {
     
     // All loaded locations
-    @Published private(set) var locations: [Location] = []
+    private(set) var locations: [Location] = []
+    private var cancellables = Set<AnyCancellable>()
     private let dataStore: LocationDataStore
-    @Published var isPresentingForm: Bool = false
+    private let photoStore: PhotoStore
+    private let geocoder: GeocodingService
+    var isPresentingForm: Bool = false
     var draftCoordinate: CLLocationCoordinate2D?
+    @Published var draftPlaceInfo: PlaceInfo?
     
     // Current location on map
-    @Published var mapLocation: Location {
+    var mapLocation: Location {
         didSet {
             updateMapRegion(location: mapLocation)
         }
@@ -42,9 +46,11 @@ class LocationsViewModel: ObservableObject {
     // Show location detail via sheet
     @Published var sheetLocation: Location? = nil
     
-    init(dataStore: LocationDataStore = JSONLocationDataStore()) {
+    init(dataStore: LocationDataStore = JSONLocationDataStore(),geocoder: GeocodingService = AppleGeocoder(),
+         photoStore: PhotoStore = DiskPhotoStore()) {
         self.dataStore = dataStore
-
+        self.geocoder = geocoder
+        self.photoStore = photoStore
         // Cargamos primero en una variable local para no acceder a `self`
         let stored = dataStore.fetchLocations()
         self.locations = stored
@@ -53,17 +59,21 @@ class LocationsViewModel: ObservableObject {
             self.mapLocation = first
         } else {
             let placeholder = Location(
-                title: "New Pin",
+                title: "Nuevo Pin",
                 subtitle: "",
                 description: "",
                 coordinate: CLLocationCoordinate2D(
-                    latitude: 0,
-                    longitude: 0
+                    latitude: 37.7749,
+                    longitude: -122.4194
                 ),
-                link: "",
+                link: ""
             )
             self.locations = [placeholder]
             self.mapLocation = placeholder
+            self.mapRegion = MKCoordinateRegion(
+                center: placeholder.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 5, longitudeDelta: 5)
+            )
         }
         updateMapRegion(location: mapLocation)
     }
@@ -114,12 +124,21 @@ class LocationsViewModel: ObservableObject {
     
     // MARK: - CRUD helpers
     func startAdd(at coordinate: CLLocationCoordinate2D) {
-        draftCoordinate = coordinate
-        isPresentingForm = true
+        geocoder.placeInfo(for: coordinate)
+            .sink(receiveCompletion: { _ in }) { [weak self] info in
+                guard let self else { return }
+                self.draftCoordinate = coordinate
+                self.draftPlaceInfo  = info
+                self.isPresentingForm = true
+            }
+            .store(in: &cancellables)
     }
 
-    func finishAdd(location: Location) {
-        locations.append(location)
+    func finishAdd(location: Location, images: [UIImage]) {
+        let paths = try? photoStore.save(images: images)
+        var loc = location
+        loc.photos = paths ?? []
+        locations.append(loc)
         dataStore.save(locations)
         mapLocation = location
         isPresentingForm = false

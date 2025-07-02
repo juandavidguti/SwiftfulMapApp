@@ -65,12 +65,23 @@ extension LocationDetailView {
     
     private var imageSection: some View {
         TabView {
-            ForEach(location.photos, id: \.self) {
-                Image($0)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: UIDevice.current.userInterfaceIdiom == .pad ? nil : UIScreen.main.bounds.width)
-                    .clipped()
+            if location.photos.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "photo.badge.plus")
+                        .font(.system(size: 80))
+                        .foregroundColor(.secondary)
+                    Text("Añade una foto")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                ForEach(location.photos, id: \.self) { name in
+                    if let img = DiskPhotoStore.image(for: name) {
+                        Image(uiImage: img)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    }
+                }
             }
         }
         .frame(height: 500)

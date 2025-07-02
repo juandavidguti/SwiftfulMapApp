@@ -6,9 +6,10 @@
 //
 
 import SwiftUI
+import PhotosUI
 import CoreLocation
 
-final class LocationFormViewModel: ObservableObject {
+@MainActor final class LocationFormViewModel: ObservableObject {
 
     // Campos editables
     var title: String
@@ -16,14 +17,18 @@ final class LocationFormViewModel: ObservableObject {
     var description: String
     var link: String
     var coordinate: CLLocationCoordinate2D
-    var photos: [UIImage]
+    @Published var photos: [UIImage] = []
 
     @ObservationIgnored private let originalLocation: Location?
-    @ObservationIgnored private let onSave: (Location) -> Void
+    @ObservationIgnored private let onSave: (Location, [UIImage]) -> Void
+    
+    var pickerItems: [PhotosPickerItem] = [] {
+        didSet { loadImages() }
+    }
 
     init(location: Location? = nil,
          coordinate: CLLocationCoordinate2D,
-         onSave: @escaping (Location) -> Void) {
+         onSave: @escaping (Location, [UIImage]) -> Void) {
 
         self.originalLocation = location
         self.title = location?.title ?? ""
@@ -31,11 +36,11 @@ final class LocationFormViewModel: ObservableObject {
         self.description = location?.description ?? ""
         self.link = location?.link ?? ""
         self.coordinate = coordinate
-        self.photos = []
         self.onSave = onSave
     }
 
     func save() {
+        let names = (try? DiskPhotoStore.save(photos)) ?? []
         let loc = Location(
             id: originalLocation?.id ?? UUID(),
             title: title,
@@ -44,8 +49,28 @@ final class LocationFormViewModel: ObservableObject {
             coordinate: coordinate,
             updatedAt: .now,
             link: link,
-            photos: [] // Mapea fotos a nombres de archivo cuando añadas el PhotoStore
+            photos: names      // <- ya no strings vacíos
         )
-        onSave(loc)
+        onSave(loc, photos)
+    }
+    
+    private func loadImages() {
+        // Capturamos los ítems en el actor principal y los pasamos
+        let items = pickerItems
+        
+        Task.detached(priority: .userInitiated) {
+            var buffer: [UIImage] = []
+            
+            for item in items {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let img = UIImage(data: data) {
+                    buffer.append(img)
+                }
+            }
+            
+            await MainActor.run { [weak self] in
+                self?.photos.append(contentsOf: buffer)
+            }
+        }
     }
 }

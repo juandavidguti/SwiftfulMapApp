@@ -14,16 +14,19 @@
 
 import SwiftUI
 import MapKit
+import CoreLocation
 
 struct LocationsView: View {
     
     @EnvironmentObject private var vm: LocationsViewModel
     let maxWidthForIpad: CGFloat = 700
+    @State private var clManager = CLLocationManager()
     
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             mapLayer
                 .ignoresSafeArea()
+                .onAppear { clManager.requestWhenInUseAuthorization() }
             
             VStack(spacing: 0) {
                 header
@@ -55,7 +58,7 @@ struct LocationsView: View {
                 LocationFormView(
                     vm: LocationFormViewModel(
                         coordinate: coord,
-                        onSave: { vm.finishAdd(location: $0) }
+                        onSave: vm.finishAdd(location:images:)
                     )
                 )
             }
@@ -118,6 +121,9 @@ extension LocationsView {
             .mapControls {
                 MapUserLocationButton()
                 MapCompass()
+            }
+            .onMapCameraChange { ctx in
+                vm.mapRegion = ctx.region
             }
             .gesture(
                 LongPressGesture(minimumDuration: 0.8)

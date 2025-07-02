@@ -20,7 +20,7 @@ struct LocationMapAnnotationView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            Image(systemName: "map.circle.fill")
+            Image(systemName: "mappin.and.ellipse")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 30, height: 30)
@@ -46,7 +46,6 @@ struct LocationMapAnnotationView_Previews: PreviewProvider {
     static var previews: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            
             LocationMapAnnotationView()
         }
     }
