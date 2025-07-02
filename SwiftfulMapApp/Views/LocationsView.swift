@@ -18,8 +18,7 @@ import CoreLocation
 
 struct LocationsView: View {
     
-    @Environment(LocationsViewModel.self) var vm
-    @Bindable var bvm: LocationsViewModel
+    @Bindable var vm: LocationsViewModel
     let maxWidthForIpad: CGFloat = 700
     @State private var clManager = CLLocationManager()
     @State private var cameraPosition: MapCameraPosition = .automatic
@@ -54,7 +53,12 @@ struct LocationsView: View {
             }
             .padding([.trailing, .bottom], 24)
         }
-        .sheet(item: $bvm.editingLocation) { loc in
+        // Sheet for "Learn More" detail
+        .sheet(item: $vm.sheetLocation) { location in
+            LocationDetailView(location: location)
+                .environment(vm)
+        }
+        .sheet(item: $vm.editingLocation) { loc in
             LocationFormView(
                 vm: LocationFormViewModel(
                     location: loc,
@@ -66,7 +70,7 @@ struct LocationsView: View {
                 )
             )
         }
-        .sheet(isPresented: $bvm.isPresentingForm) {
+        .sheet(isPresented: $vm.isPresentingForm) {
             if let coord = vm.draftCoordinate {
                 LocationFormView(
                     vm: LocationFormViewModel(
@@ -76,12 +80,13 @@ struct LocationsView: View {
                 )
             }
         }
+        .environment(vm)
     }
 }
 
 struct LocationsView_Previews: PreviewProvider {
     static var previews: some View {
-        LocationsView(bvm: LocationsViewModel())
+        LocationsView(vm: LocationsViewModel())
             .environment(LocationsViewModel())
     }
 }

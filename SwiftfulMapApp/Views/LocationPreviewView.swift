@@ -37,6 +37,7 @@ struct LocationPreviewView: View {
                 .offset(y: 65)
         )
         .cornerRadius(10)
+        .environment(vm)
     }
 }
 

@@ -88,6 +88,7 @@ import Combine
     
     func showNextLocation(location: Location) {
         withAnimation(.easeInOut) {
+            print("Tap: \(location.title)")
             mapLocation = location
             updateMapRegion(location: location)   // ← fuerza el recentrado
             showLocationsList = false
@@ -95,6 +96,7 @@ import Combine
     }
     
     func nextButtonPressed() {
+        print("Next: \(mapLocation.title)")
         // Get the current index
         guard let currentIndex = locations.firstIndex(where: { $0 == mapLocation }) else {
             print("Could not find current index in locations array! Should never happen.")

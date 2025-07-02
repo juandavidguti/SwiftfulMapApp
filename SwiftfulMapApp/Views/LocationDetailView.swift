@@ -41,17 +41,8 @@ struct LocationDetailView: View {
         .ignoresSafeArea()
         .background(.ultraThinMaterial)
         .overlay(backButton, alignment: .topLeading)
-        .toolbar {
-            ToolbarItemGroup(placement: .navigationBarTrailing) {
-                Button(role: .destructive) {
-                    vm.delete(location: location)          // borra y cierra
-                } label: { Label("Eliminar", systemImage: "trash") }
-                
-                Button {
-                    vm.startEdit(location)                 // abre formulario con datos
-                } label: { Label("Editar", systemImage: "pencil") }
-            }
-        }
+        .overlay(editButton, alignment: .top)
+        .overlay(deleteButton, alignment: .topTrailing)
     }
 }
 
@@ -98,6 +89,7 @@ extension LocationDetailView {
         }
         .frame(height: 500)
         .tabViewStyle(PageTabViewStyle())
+        
     }
     
     private var titleSection: some View {
@@ -154,7 +146,34 @@ extension LocationDetailView {
                 .shadow(radius: 4)
                 .padding()
         }
-
+    }
+    private var editButton: some View {
+        Button {
+            vm.startEdit(location)
+        } label: {
+            Image(systemName: "pencil")
+                .font(.headline)
+                .padding(16)
+                .foregroundColor(.primary)
+                .background(.thickMaterial)
+                .cornerRadius(10)
+                .shadow(radius: 4)
+                .padding()
+        }
+    }
+    private var deleteButton: some View {
+        Button {
+            vm.delete(location: location)
+        } label: {
+            Image(systemName: "trash")
+                .font(.headline)
+                .padding(16)
+                .foregroundColor(.primary)
+                .background(.thickMaterial)
+                .cornerRadius(10)
+                .shadow(radius: 4)
+                .padding()
+        }
     }
     
     
