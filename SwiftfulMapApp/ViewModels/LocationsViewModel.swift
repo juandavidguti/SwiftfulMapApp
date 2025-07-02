@@ -17,7 +17,7 @@ import MapKit
 import SwiftUI
 import Combine
 
-@MainActor class LocationsViewModel: ObservableObject {
+@MainActor @Observable class LocationsViewModel {
     
     // All loaded locations
     private(set) var locations: [Location] = []
@@ -27,7 +27,8 @@ import Combine
     private let geocoder: GeocodingService
     var isPresentingForm: Bool = false
     var draftCoordinate: CLLocationCoordinate2D?
-    @Published var draftPlaceInfo: PlaceInfo?
+    var draftPlaceInfo: PlaceInfo?
+    var editingLocation: Location? // pin to edit
     
     // Current location on map
     var mapLocation: Location {
@@ -37,14 +38,14 @@ import Combine
     }
     
     // Current region on map
-    @Published var mapRegion: MKCoordinateRegion = MKCoordinateRegion()
+    var mapRegion: MKCoordinateRegion = MKCoordinateRegion()
     let mapSpan = MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
     
     // Show list of locations
-    @Published var showLocationsList: Bool = false
+    var showLocationsList: Bool = false
     
     // Show location detail via sheet
-    @Published var sheetLocation: Location? = nil
+    var sheetLocation: Location? = nil
     
     init(dataStore: LocationDataStore = JSONLocationDataStore(),geocoder: GeocodingService = AppleGeocoder(),
          photoStore: PhotoStore = DiskPhotoStore()) {
@@ -57,17 +58,9 @@ import Combine
 
         if let first = stored.first {
             self.mapLocation = first
-        } else {
-            let placeholder = Location(
-                title: "Nuevo Pin",
-                subtitle: "",
-                description: "",
-                coordinate: CLLocationCoordinate2D(
-                    latitude: 37.7749,
-                    longitude: -122.4194
-                ),
-                link: ""
-            )
+        }
+        else {
+            let placeholder = Location.placeholder          // ← único punto de verdad
             self.locations = [placeholder]
             self.mapLocation = placeholder
             self.mapRegion = MKCoordinateRegion(
@@ -96,6 +89,7 @@ import Combine
     func showNextLocation(location: Location) {
         withAnimation(.easeInOut) {
             mapLocation = location
+            updateMapRegion(location: location)   // ← fuerza el recentrado
             showLocationsList = false
         }
     }
@@ -145,15 +139,27 @@ import Combine
         draftCoordinate = nil
     }
 
-    func update(_ location: Location) {
-        guard let idx = locations.firstIndex(of: location) else { return }
-        locations[idx] = location
-        dataStore.save(locations)
-    }
 
-    func delete(_ location: Location) {
+    /// Manda el formulario en modo edición
+    func startEdit(_ location: Location) {
+        editingLocation = location
+    }
+    /// Borra el pin y actualiza estado
+    func delete(location: Location) {
         locations.removeAll { $0.id == location.id }
-        dataStore.save(locations)
+        if mapLocation == location {
+            mapLocation = locations.first ?? Location.placeholder
+        }
+        sheetLocation = nil
+    }
+    
+    /// Guarda la edición y cierra el formulario
+    func update(location newValue: Location, images: [UIImage]) {
+        if let idx = locations.firstIndex(where: { $0.id == newValue.id }) {
+            locations[idx] = newValue               // (o persiste fotos antes si quieres)
+            mapLocation = newValue
+        }
+        editingLocation = nil                       // cierra la hoja
     }
     
 }

@@ -9,7 +9,7 @@ import SwiftUI
 import PhotosUI
 import CoreLocation
 
-@MainActor final class LocationFormViewModel: ObservableObject {
+@MainActor @Observable final class LocationFormViewModel {
 
     // Campos editables
     var title: String
@@ -17,7 +17,7 @@ import CoreLocation
     var description: String
     var link: String
     var coordinate: CLLocationCoordinate2D
-    @Published var photos: [UIImage] = []
+    var photos: [UIImage] = []
 
     @ObservationIgnored private let originalLocation: Location?
     @ObservationIgnored private let onSave: (Location, [UIImage]) -> Void

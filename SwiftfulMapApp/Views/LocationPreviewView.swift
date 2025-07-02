@@ -15,7 +15,7 @@ import SwiftUI
 
 struct LocationPreviewView: View {
     
-    @EnvironmentObject private var vm: LocationsViewModel
+    @Environment(LocationsViewModel.self) private var vm
     let location: Location
     
     var body: some View {
@@ -59,7 +59,7 @@ struct LocationPreviewView_Previews: PreviewProvider {
             )
             .padding()
         }
-        .environmentObject(LocationsViewModel())
+        .environment(LocationsViewModel())
     }
 }
 

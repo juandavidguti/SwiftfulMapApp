@@ -51,4 +51,18 @@ struct Location: Identifiable, Codable, Equatable {
         self.link = link
         self.photos = photos
     }
+    
+}
+
+extension Location {
+    static let placeholder = Location(
+        title: "Nuevo Pin",
+        subtitle: "",
+        description: "",
+        coordinate: CLLocationCoordinate2D(
+            latitude: 37.7749,
+            longitude: -122.4194
+        ),
+        link: ""
+    )
 }

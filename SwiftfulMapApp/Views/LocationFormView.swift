@@ -12,7 +12,7 @@ import PhotosUI
 struct LocationFormView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject var vm: LocationFormViewModel
+    @State var vm: LocationFormViewModel
     @State private var maxPhotos = 10
     @State private var selectedItems: [PhotosPickerItem] = []
 

@@ -17,7 +17,8 @@ import MapKit
 
 struct LocationDetailView: View {
     
-    @EnvironmentObject private var vm: LocationsViewModel
+    @Environment(LocationsViewModel.self) private var vm
+    
     let location: Location
     
     var body: some View {
@@ -40,6 +41,17 @@ struct LocationDetailView: View {
         .ignoresSafeArea()
         .background(.ultraThinMaterial)
         .overlay(backButton, alignment: .topLeading)
+        .toolbar {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                Button(role: .destructive) {
+                    vm.delete(location: location)          // borra y cierra
+                } label: { Label("Eliminar", systemImage: "trash") }
+                
+                Button {
+                    vm.startEdit(location)                 // abre formulario con datos
+                } label: { Label("Editar", systemImage: "pencil") }
+            }
+        }
     }
 }
 
@@ -57,7 +69,7 @@ struct LocationDetailView_Previews: PreviewProvider {
                 link: "https://example.com"
             )
         )
-        .environmentObject(LocationsViewModel())
+        .environment(LocationsViewModel())
     }
 }
 
@@ -144,4 +156,6 @@ extension LocationDetailView {
         }
 
     }
+    
+    
 }

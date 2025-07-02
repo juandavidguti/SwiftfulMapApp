@@ -18,9 +18,13 @@ import CoreLocation
 
 struct LocationsView: View {
     
-    @EnvironmentObject private var vm: LocationsViewModel
+    @Environment(LocationsViewModel.self) var vm
+    @Bindable var bvm: LocationsViewModel
     let maxWidthForIpad: CGFloat = 700
     @State private var clManager = CLLocationManager()
+    @State private var cameraPosition: MapCameraPosition = .automatic
+    @State private var currentCamera: MapCamera?
+    @State private var isProgrammaticMove = false   // evita rebote cámara-→VM-→cámara
     
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -50,10 +54,19 @@ struct LocationsView: View {
             }
             .padding([.trailing, .bottom], 24)
         }
-        .sheet(item: $vm.sheetLocation, onDismiss: nil) { location in
-            LocationDetailView(location: location)
+        .sheet(item: $bvm.editingLocation) { loc in
+            LocationFormView(
+                vm: LocationFormViewModel(
+                    location: loc,
+                    coordinate: loc.coordinate,
+                    onSave: { location, images in
+                        vm
+                            .update(location: location, images: images)
+                    }
+                )
+            )
         }
-        .sheet(isPresented: $vm.isPresentingForm) {
+        .sheet(isPresented: $bvm.isPresentingForm) {
             if let coord = vm.draftCoordinate {
                 LocationFormView(
                     vm: LocationFormViewModel(
@@ -68,8 +81,8 @@ struct LocationsView: View {
 
 struct LocationsView_Previews: PreviewProvider {
     static var previews: some View {
-        LocationsView()
-            .environmentObject(LocationsViewModel())
+        LocationsView(bvm: LocationsViewModel())
+            .environment(LocationsViewModel())
     }
 }
 
@@ -106,24 +119,34 @@ extension LocationsView {
     @available(iOS 17.0, *)
     private var mapLayer: some View {
         MapReader { proxy in
-            Map(initialPosition: .region(vm.mapRegion)) {
-                ForEach(vm.locations) { location in
-                    Annotation("", coordinate: location.coordinate) {
-                        LocationMapAnnotationView()
-                            .scaleEffect(vm.mapLocation == location ? 1 : 0.7)
-                            .shadow(radius: 10)
-                            .onTapGesture {
-                                vm.showNextLocation(location: location)
-                            }
-                    }
-                }
+            Map(position: $cameraPosition) {
+                annotationLayer()      // Map annotations
             }
             .mapControls {
                 MapUserLocationButton()
                 MapCompass()
             }
             .onMapCameraChange { ctx in
-                vm.mapRegion = ctx.region
+                guard !isProgrammaticMove else { return }
+                vm.mapRegion  = ctx.region
+                currentCamera = ctx.camera
+            }
+            .onAppear { cameraPosition = .region(vm.mapRegion) }
+            .onChange(of: vm.mapRegion) { oldRegion, newRegion in
+                isProgrammaticMove = true
+                let base = currentCamera ?? MapCamera(centerCoordinate: newRegion.center,
+                                                      distance: 1_000,
+                                                      heading: 0,
+                                                      pitch: 50)
+                withAnimation(.easeInOut(duration: 0.8)) {
+                    cameraPosition = .camera(
+                        MapCamera(centerCoordinate: newRegion.center,
+                                  distance: base.distance,
+                                  heading: base.heading,
+                                  pitch: base.pitch)
+                    )
+                }
+                DispatchQueue.main.async { isProgrammaticMove = false }
             }
             .gesture(
                 LongPressGesture(minimumDuration: 0.8)
@@ -135,8 +158,7 @@ extension LocationsView {
                             if let coord = proxy.convert(point, from: .local) {
                                 vm.startAdd(at: coord)
                             }
-                        default:
-                            break
+                        default: break
                         }
                     }
             )
@@ -160,4 +182,29 @@ extension LocationsView {
         }
     }
     
+    @available(iOS 17.0, *)
+    @MapContentBuilder
+    private func annotationLayer() -> some MapContent {
+        ForEach(vm.locations) { location in
+            Annotation("", coordinate: location.coordinate) {
+                LocationMapAnnotationView()
+                    .scaleEffect(vm.mapLocation == location ? 1 : 0.7)
+                    .shadow(radius: 10)
+                    .onTapGesture { vm.showNextLocation(location: location) }
+            }
+        }
+    }
+}
+
+extension MKCoordinateRegion: Equatable {
+    public static func == (lhs: MKCoordinateRegion, rhs: MKCoordinateRegion) -> Bool {
+        lhs.center.latitude == rhs.center.latitude &&
+        lhs.center.longitude == rhs.center.longitude &&
+        lhs.span.latitudeDelta == rhs.span.latitudeDelta &&
+        lhs.span.longitudeDelta == rhs.span.longitudeDelta
+    }
+}
+private extension View {
+    /// Envuelve la vista en `AnyView` para evitar que el compilador infiera tipos gigantes.
+    func erased() -> AnyView { AnyView(self) }
 }

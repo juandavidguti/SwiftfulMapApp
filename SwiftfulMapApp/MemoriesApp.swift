@@ -17,12 +17,12 @@ import SwiftUI
 @main
 struct Memories: App {
     
-    @StateObject private var vm = LocationsViewModel()
+    @State private var vm = LocationsViewModel()
     
     var body: some Scene {
         WindowGroup {
-            LocationsView()
-                .environmentObject(vm)
+            LocationsView(bvm: LocationsViewModel())
+                .environment(vm)
         }
     }
 }
